@@ -37,7 +37,7 @@ bool PythonInterpreter::executeFile(const std::string& filename) {
 }
 
 void PythonInterpreter::interactiveMode() {
-    std::cout << "CPPython 1.0.2 (simplified interpreter)" << std::endl;
+    std::cout << "CPPython 1.0.3 (simplified interpreter)" << std::endl;
     std::cout << "Type \"help\", \"copyright\", \"credits\" or \"license\" for more information." << std::endl;
     
     // 设置为交互模式
@@ -69,6 +69,9 @@ void PythonInterpreter::interactiveMode() {
             std::cout << "  - String operations" << std::endl;
             std::cout << "  - eval() and exec() functions" << std::endl;
             std::cout << "  - Escape sequences (\\n, \\t, \\\\, etc.)" << std::endl;
+            std::cout << "  - List operations (one-dimensional and multi-dimensional)" << std::endl;
+            std::cout << "  - File operations (open, read, write, with statement)" << std::endl;
+            std::cout << "  - Built-in functions (str, int, float, bool, len, repr)" << std::endl;
             std::cout << "  - Comments (# this is a comment)" << std::endl;
             std::cout << std::endl;
             std::cout << "Type \"copyright\", \"credits\" or \"license\" for more information." << std::endl;
@@ -126,5 +129,5 @@ void PythonInterpreter::showHelp() {
 }
 
 void PythonInterpreter::showVersion() {
-    std::cout << "CPPython 1.0.2 (simplified interpreter)" << std::endl;
+    std::cout << "CPPython 1.0.3 (simplified interpreter)" << std::endl;
 }
