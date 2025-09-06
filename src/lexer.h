@@ -10,13 +10,14 @@ enum class TokenType {
     
     // 关键字
     PRINT, INPUT, IF, ELSE, FOR, WHILE, DEF, RETURN, TRUE, FALSE, NONE,
+    WITH, AS,
     
     // 操作符
     PLUS, MINUS, MULTIPLY, DIVIDE, MODULO,
     ASSIGN, EQUAL, NOT_EQUAL, LESS, GREATER,
     
     // 分隔符
-    LPAREN, RPAREN, LBRACE, RBRACE, LBRACKET, RBRACKET,
+    LPAREN, RPAREN, LBRACE, RBRACE, LBRACKET, RBRACKET,  // 添加方括号
     COMMA, DOT, COLON, SEMICOLON,
     
     // 其他
@@ -48,7 +49,7 @@ private:
     Token readString();
     Token readIdentifier();
     TokenType getKeywordType(const std::string& identifier);
-    std::string processEscapeSequences(const std::string& str); // 添加转义序列处理
+    std::string processEscapeSequences(const std::string& str);
     
 public:
     Lexer(const std::string& sourceCode);

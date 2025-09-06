@@ -52,6 +52,27 @@ public:
     std::string toString() const override;
 };
 
+// 列表表达式
+class ListExpr : public ExprNode {
+public:
+    std::vector<std::unique_ptr<ExprNode>> elements;
+    
+    ListExpr(std::vector<std::unique_ptr<ExprNode>> elems)
+        : elements(std::move(elems)) {}
+    std::string toString() const override;
+};
+
+// 索引表达式
+class IndexExpr : public ExprNode {
+public:
+    std::unique_ptr<ExprNode> array;
+    std::unique_ptr<ExprNode> index;
+    
+    IndexExpr(std::unique_ptr<ExprNode> arr, std::unique_ptr<ExprNode> idx)
+        : array(std::move(arr)), index(std::move(idx)) {}
+    std::string toString() const override;
+};
+
 // 二元操作表达式
 class BinaryExpr : public ExprNode {
 public:
@@ -106,6 +127,19 @@ public:
     std::string toString() const override;
 };
 
+// With语句
+class WithStmt : public StmtNode {
+public:
+    std::unique_ptr<ExprNode> context_expr;
+    std::string optional_vars;
+    std::vector<std::unique_ptr<StmtNode>> body;
+    
+    WithStmt(std::unique_ptr<ExprNode> ctx_expr, const std::string& opt_vars, 
+             std::vector<std::unique_ptr<StmtNode>> b)
+        : context_expr(std::move(ctx_expr)), optional_vars(opt_vars), body(std::move(b)) {}
+    std::string toString() const override;
+};
+
 class Parser {
 private:
     std::vector<Token> tokens;
@@ -126,11 +160,14 @@ private:
     std::unique_ptr<ExprNode> parseUnary();
     std::unique_ptr<ExprNode> parsePrimary();
     std::unique_ptr<ExprNode> parseCall(std::unique_ptr<ExprNode> callee);
+    std::unique_ptr<ExprNode> parseList();
+    std::unique_ptr<ExprNode> parseIndex(std::unique_ptr<ExprNode> array);
     
     // 解析语句
     std::unique_ptr<StmtNode> parseStatement();
     std::unique_ptr<StmtNode> parsePrintStatement();
     std::unique_ptr<StmtNode> parseAssignmentStatement();
+    std::unique_ptr<StmtNode> parseWithStatement();
     
 public:
     Parser(const std::vector<Token>& tokenList);

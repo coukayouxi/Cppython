@@ -34,7 +34,6 @@ void Lexer::advance() {
     }
 }
 
-// 添加转义序列处理函数
 std::string Lexer::processEscapeSequences(const std::string& str) {
     std::string result;
     for (size_t i = 0; i < str.length(); i++) {
@@ -172,8 +171,10 @@ TokenType Lexer::getKeywordType(const std::string& identifier) {
     if (identifier == "while") return TokenType::WHILE;
     if (identifier == "def") return TokenType::DEF;
     if (identifier == "return") return TokenType::RETURN;
-    if (identifier == "eval") return TokenType::IDENTIFIER; // eval作为普通标识符
-    if (identifier == "exec") return TokenType::IDENTIFIER; // exec作为普通标识符
+    if (identifier == "eval") return TokenType::IDENTIFIER;
+    if (identifier == "exec") return TokenType::IDENTIFIER;
+    if (identifier == "with") return TokenType::WITH;    // 添加with关键字
+    if (identifier == "as") return TokenType::AS;       // 添加as关键字
     if (identifier == "True") return TokenType::TRUE;
     if (identifier == "False") return TokenType::FALSE;
     if (identifier == "None") return TokenType::NONE;

@@ -97,6 +97,32 @@ std::unique_ptr<ExprNode> Parser::parseCall(std::unique_ptr<ExprNode> callee) {
     return std::make_unique<CallExpr>(std::move(callee), std::move(arguments));
 }
 
+// 添加列表解析
+std::unique_ptr<ExprNode> Parser::parseList() {
+    consume(TokenType::LBRACKET, "Expected '[' for list");
+    
+    std::vector<std::unique_ptr<ExprNode>> elements;
+    
+    if (!match(TokenType::RBRACKET)) {
+        do {
+            elements.push_back(parseExpression());
+        } while (match(TokenType::COMMA));
+        
+        consume(TokenType::RBRACKET, "Expected ']' after list elements");
+    }
+    
+    return std::make_unique<ListExpr>(std::move(elements));
+}
+
+// 添加索引解析
+std::unique_ptr<ExprNode> Parser::parseIndex(std::unique_ptr<ExprNode> array) {
+    consume(TokenType::LBRACKET, "Expected '[' for index");
+    auto index = parseExpression();
+    consume(TokenType::RBRACKET, "Expected ']' after index");
+    
+    return std::make_unique<IndexExpr>(std::move(array), std::move(index));
+}
+
 std::unique_ptr<ExprNode> Parser::parsePrimary() {
     if (match(TokenType::NUMBER)) {
         return std::make_unique<LiteralExpr>(previous().value, TokenType::NUMBER);
@@ -118,15 +144,30 @@ std::unique_ptr<ExprNode> Parser::parsePrimary() {
         return std::make_unique<LiteralExpr>("False", TokenType::FALSE);
     }
     
+    // 添加列表字面量支持
+    if (match(TokenType::LBRACKET)) {
+        current--; // 回退一个token
+        return parseList();
+    }
+    
     if (match(TokenType::IDENTIFIER)) {
+        // 修复：使用正确的类型转换
         auto expr = std::make_unique<IdentifierExpr>(previous().value);
+        std::unique_ptr<ExprNode> base_expr = std::move(expr); // 转换为基类指针
         
-        // 检查是否是函数调用
-        if (match(TokenType::LPAREN)) {
-            return parseCall(std::move(expr));
+        // 检查是否是函数调用或索引
+        while (true) {
+            if (match(TokenType::LPAREN)) {
+                return parseCall(std::move(base_expr));
+            } else if (match(TokenType::LBRACKET)) {
+                current--; // 回退，让parseIndex处理
+                base_expr = parseIndex(std::move(base_expr));
+            } else {
+                break;
+            }
         }
         
-        return expr;
+        return base_expr;
     }
     
     if (match(TokenType::LPAREN)) {
@@ -138,9 +179,42 @@ std::unique_ptr<ExprNode> Parser::parsePrimary() {
     throw std::runtime_error("Expected expression at line " + std::to_string(peek().line));
 }
 
+// 添加with语句解析
+std::unique_ptr<StmtNode> Parser::parseWithStatement() {
+    consume(TokenType::WITH, "Expected 'with'");
+    
+    // 解析上下文表达式
+    auto context_expr = parseExpression();
+    
+    // 可选的as子句
+    std::string optional_vars = "";
+    if (match(TokenType::AS)) {
+        Token var_token = consume(TokenType::IDENTIFIER, "Expected identifier after 'as'");
+        optional_vars = var_token.value;
+    }
+    
+    consume(TokenType::COLON, "Expected ':' after with statement");
+    consume(TokenType::NEWLINE, "Expected newline after with statement");
+    
+    // 解析with语句体（简化处理）
+    std::vector<std::unique_ptr<StmtNode>> body;
+    while (!isAtEnd() && peek().type != TokenType::NEWLINE && peek().type != TokenType::EOF_TOKEN) {
+        body.push_back(parseStatement());
+        if (peek().type == TokenType::NEWLINE) {
+            advance();
+        }
+    }
+    
+    return std::make_unique<WithStmt>(std::move(context_expr), optional_vars, std::move(body));
+}
+
 std::unique_ptr<StmtNode> Parser::parseStatement() {
     if (peek().type == TokenType::PRINT) {
         return parsePrintStatement();
+    }
+    
+    if (peek().type == TokenType::WITH) {  // 添加with语句处理
+        return parseWithStatement();
     }
     
     if (peek().type == TokenType::IDENTIFIER && 
@@ -229,6 +303,22 @@ std::string IdentifierExpr::toString() const {
     return name;
 }
 
+// 添加ListExpr的toString实现
+std::string ListExpr::toString() const {
+    std::string result = "[";
+    for (size_t i = 0; i < elements.size(); i++) {
+        if (i > 0) result += ", ";
+        result += elements[i]->toString();
+    }
+    result += "]";
+    return result;
+}
+
+// 添加IndexExpr的toString实现
+std::string IndexExpr::toString() const {
+    return array->toString() + "[" + index->toString() + "]";
+}
+
 std::string BinaryExpr::toString() const {
     std::string opStr;
     switch (op) {
@@ -272,4 +362,13 @@ std::string AssignStmt::toString() const {
 
 std::string ExprStmt::toString() const {
     return expression->toString();
+}
+
+std::string WithStmt::toString() const {
+    std::string result = "with " + context_expr->toString();
+    if (!optional_vars.empty()) {
+        result += " as " + optional_vars;
+    }
+    result += ":";
+    return result;
 }
