@@ -1,6 +1,7 @@
 #include "lexer.h"
 #include <cctype>
 #include <stdexcept>
+#include <algorithm>
 
 Lexer::Lexer(const std::string& sourceCode) 
     : source(sourceCode), pos(0), line(1), col(0) {
@@ -157,6 +158,52 @@ std::vector<Token> Lexer::tokenize() {
             while (currentChar() != '\n' && currentChar() != '\0') {
                 advance();
             }
+            continue;
+        }
+        
+        // 检查f-string模式: f" 或 f'
+        if ((currentChar() == 'f' || currentChar() == 'F') && 
+            pos + 1 < source.length() && 
+            (source[pos + 1] == '"' || source[pos + 1] == '\'')) {
+            char f_char = currentChar();
+            advance(); // 跳过'f'
+            char quote = currentChar();
+            advance(); // 跳过引号
+            
+            size_t start = pos;
+            std::string value = "";
+            
+            // 读取f-string内容，特别处理大括号
+            while (currentChar() != quote && currentChar() != '\0' && currentChar() != '\n') {
+                if (currentChar() == '\\' && peekChar() != '\0') {
+                    // 处理转义字符
+                    value += currentChar();
+                    advance();
+                    value += currentChar();
+                    advance();
+                } else if (currentChar() == '{') {
+                    // 开始表达式
+                    value += currentChar();
+                    advance();
+                    // 读取直到匹配的'}'
+                    int brace_count = 1;
+                    while (currentChar() != '\0' && brace_count > 0) {
+                        if (currentChar() == '{') brace_count++;
+                        if (currentChar() == '}') brace_count--;
+                        value += currentChar();
+                        advance();
+                    }
+                } else {
+                    value += currentChar();
+                    advance();
+                }
+            }
+            
+            if (currentChar() == quote) {
+                advance(); // 跳过结束引号
+            }
+            
+            tokens.emplace_back(TokenType::F_STRING, value, line, col);
             continue;
         }
         

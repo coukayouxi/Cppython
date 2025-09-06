@@ -34,6 +34,15 @@ public:
     std::string toString() const override;
 };
 
+// f-string表达式
+class FStringExpr : public ExprNode {
+public:
+    std::string template_string;
+    
+    FStringExpr(const std::string& tmpl) : template_string(tmpl) {}
+    std::string toString() const override;
+};
+
 // 标识符表达式
 class IdentifierExpr : public ExprNode {
 public:

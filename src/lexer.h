@@ -6,7 +6,7 @@
 
 enum class TokenType {
     // 字面量
-    NUMBER, STRING, IDENTIFIER,
+    NUMBER, STRING, IDENTIFIER, F_STRING,
     
     // 关键字
     PRINT, INPUT, IF, ELSE, FOR, WHILE, DEF, RETURN, TRUE, FALSE, NONE,

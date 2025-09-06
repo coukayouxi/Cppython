@@ -106,6 +106,10 @@ std::unique_ptr<ExprNode> Parser::parsePrimary() {
         return std::make_unique<LiteralExpr>(previous().value, TokenType::STRING);
     }
     
+    if (match(TokenType::F_STRING)) {
+        return std::make_unique<FStringExpr>(previous().value);
+    }
+    
     if (match(TokenType::TRUE)) {
         return std::make_unique<LiteralExpr>("True", TokenType::TRUE);
     }
@@ -199,6 +203,10 @@ std::vector<std::unique_ptr<StmtNode>> Parser::parse() {
 
 std::string LiteralExpr::toString() const {
     return value;
+}
+
+std::string FStringExpr::toString() const {
+    return "f\"" + template_string + "\"";
 }
 
 std::string IdentifierExpr::toString() const {

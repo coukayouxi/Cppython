@@ -5,6 +5,8 @@
 #include <unordered_map>
 #include <string>
 #include <vector>
+#include <algorithm>
+#include <cctype>
 
 class Value {
 public:
@@ -39,9 +41,13 @@ private:
     
     Value evaluateExpression(const ExprNode* expr);
     Value evaluateLiteral(const LiteralExpr* literal);
+    Value evaluateFString(const FStringExpr* fstring);
     Value evaluateIdentifier(const IdentifierExpr* identifier);
     Value evaluateBinary(const BinaryExpr* binary);
     Value evaluateCall(const CallExpr* call);
+    
+    // f-string表达式解析辅助函数
+    Value parseAndEvaluateSimpleExpression(const std::string& expr_str);
     
     void executeStatement(const StmtNode* stmt);
     void executePrint(const PrintStmt* printStmt);
