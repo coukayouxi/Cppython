@@ -48,6 +48,7 @@ private:
     Token readString();
     Token readIdentifier();
     TokenType getKeywordType(const std::string& identifier);
+    std::string processEscapeSequences(const std::string& str); // 添加转义序列处理
     
 public:
     Lexer(const std::string& sourceCode);

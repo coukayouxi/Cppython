@@ -34,6 +34,35 @@ void Lexer::advance() {
     }
 }
 
+// 添加转义序列处理函数
+std::string Lexer::processEscapeSequences(const std::string& str) {
+    std::string result;
+    for (size_t i = 0; i < str.length(); i++) {
+        if (str[i] == '\\' && i + 1 < str.length()) {
+            i++;
+            switch (str[i]) {
+                case 'n': result += '\n'; break;
+                case 'r': result += '\r'; break;
+                case 't': result += '\t'; break;
+                case 'b': result += '\b'; break;
+                case 'f': result += '\f'; break;
+                case 'v': result += '\v'; break;
+                case '\\': result += '\\'; break;
+                case '"': result += '"'; break;
+                case '\'': result += '\''; break;
+                case '0': result += '\0'; break;
+                default: 
+                    result += '\\';
+                    result += str[i];
+                    break;
+            }
+        } else {
+            result += str[i];
+        }
+    }
+    return result;
+}
+
 Token Lexer::readString() {
     char quote = currentChar();
     advance();
@@ -54,6 +83,8 @@ Token Lexer::readString() {
         }
         
         std::string value = source.substr(start, pos - start);
+        // 处理三引号字符串中的转义符
+        value = processEscapeSequences(value);
         if (pos + 2 < source.length()) {
             advance(); advance(); advance(); // 跳过结束的三引号
         }
@@ -74,6 +105,8 @@ Token Lexer::readString() {
         }
         
         std::string value = source.substr(start, pos - start);
+        // 处理三引号字符串中的转义符
+        value = processEscapeSequences(value);
         if (pos + 2 < source.length()) {
             advance(); advance(); advance(); // 跳过结束的三引号
         }
@@ -85,12 +118,16 @@ Token Lexer::readString() {
         
         while (currentChar() != quote && currentChar() != '\0' && currentChar() != '\n') {
             if (currentChar() == '\\' && peekChar() != '\0') {
+                advance(); // 跳过反斜杠
                 advance(); // 跳过转义字符
+            } else {
+                advance();
             }
-            advance();
         }
         
         std::string value = source.substr(start, pos - start);
+        // 处理普通字符串中的转义符
+        value = processEscapeSequences(value);
         if (currentChar() == quote) {
             advance(); // 跳过结束引号
         }
@@ -135,6 +172,8 @@ TokenType Lexer::getKeywordType(const std::string& identifier) {
     if (identifier == "while") return TokenType::WHILE;
     if (identifier == "def") return TokenType::DEF;
     if (identifier == "return") return TokenType::RETURN;
+    if (identifier == "eval") return TokenType::IDENTIFIER; // eval作为普通标识符
+    if (identifier == "exec") return TokenType::IDENTIFIER; // exec作为普通标识符
     if (identifier == "True") return TokenType::TRUE;
     if (identifier == "False") return TokenType::FALSE;
     if (identifier == "None") return TokenType::NONE;
@@ -147,15 +186,25 @@ std::vector<Token> Lexer::tokenize() {
     
     while (pos < source.length()) {
         // 跳过空白字符（除了换行符）
-        while (std::isspace(currentChar()) && currentChar() != '\n') {
+        while (pos < source.length() && std::isspace(currentChar()) && currentChar() != '\n') {
             advance();
         }
         
         if (currentChar() == '\0') break;
         
+        if (currentChar() == '\n') {
+            tokens.emplace_back(TokenType::NEWLINE, "\n", line, col);
+            advance();
+            continue;
+        }
+        
         if (currentChar() == '#') {
             // 跳过注释
             while (currentChar() != '\n' && currentChar() != '\0') {
+                advance();
+            }
+            if (currentChar() == '\n') {
+                tokens.emplace_back(TokenType::NEWLINE, "\n", line, col);
                 advance();
             }
             continue;
@@ -173,7 +222,7 @@ std::vector<Token> Lexer::tokenize() {
             size_t start = pos;
             std::string value = "";
             
-            // 读取f-string内容，特别处理大括号
+            // 读取f-string内容，特别处理大括号和转义符
             while (currentChar() != quote && currentChar() != '\0' && currentChar() != '\n') {
                 if (currentChar() == '\\' && peekChar() != '\0') {
                     // 处理转义字符
@@ -264,7 +313,6 @@ std::vector<Token> Lexer::tokenize() {
             case '.': tokens.emplace_back(TokenType::DOT, ".", line, col); advance(); break;
             case ':': tokens.emplace_back(TokenType::COLON, ":", line, col); advance(); break;
             case ';': tokens.emplace_back(TokenType::SEMICOLON, ";", line, col); advance(); break;
-            case '\n': tokens.emplace_back(TokenType::NEWLINE, "\n", line, col); advance(); break;
             default: advance(); break;
         }
     }

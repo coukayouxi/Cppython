@@ -191,7 +191,23 @@ std::vector<std::unique_ptr<StmtNode>> Parser::parse() {
             continue;
         }
         
-        statements.push_back(parseStatement());
+        if (peek().type == TokenType::EOF_TOKEN) {
+            break;
+        }
+        
+        try {
+            statements.push_back(parseStatement());
+        } catch (const std::exception& e) {
+            // 跳过到下一个语句
+            while (!isAtEnd() && peek().type != TokenType::NEWLINE && peek().type != TokenType::EOF_TOKEN) {
+                advance();
+            }
+            if (peek().type == TokenType::NEWLINE) {
+                advance();
+            }
+            // 继续解析下一个语句而不是抛出异常
+            continue;
+        }
         
         if (peek().type == TokenType::NEWLINE) {
             advance();

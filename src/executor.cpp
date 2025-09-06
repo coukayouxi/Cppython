@@ -138,7 +138,29 @@ Value Executor::evaluateFString(const FStringExpr* fstring) {
     
     size_t pos = 0;
     while (pos < template_str.length()) {
-        if (template_str[pos] == '{') {
+        if (template_str[pos] == '\\') {
+            // 处理转义字符
+            if (pos + 1 < template_str.length()) {
+                pos++;
+                switch (template_str[pos]) {
+                    case 'n': result += '\n'; break;
+                    case 'r': result += '\r'; break;
+                    case 't': result += '\t'; break;
+                    case 'b': result += '\b'; break;
+                    case 'f': result += '\f'; break;
+                    case 'v': result += '\v'; break;
+                    case '\\': result += '\\'; break;
+                    case '"': result += '"'; break;
+                    case '\'': result += '\''; break;
+                    case '{': result += '{'; break; // 转义大括号
+                    case '}': result += '}'; break; // 转义大括号
+                    default: result += template_str[pos]; break;
+                }
+            } else {
+                result += template_str[pos];
+            }
+            pos++;
+        } else if (template_str[pos] == '{') {
             // 找到表达式开始
             size_t expr_start = pos + 1;
             int brace_count = 1;
@@ -208,6 +230,76 @@ Value Executor::evaluateBinary(const BinaryExpr* binary) {
     }
 }
 
+Value Executor::evaluateEval(const std::vector<std::unique_ptr<ExprNode>>& arguments) {
+    if (arguments.empty()) {
+        throw std::runtime_error("eval() missing required argument");
+    }
+    
+    // 获取要评估的表达式字符串
+    Value expr_value = evaluateExpression(arguments[0].get());
+    std::string expr_str = expr_value.toString();
+    
+    // 如果表达式是纯数字，直接返回
+    if (std::all_of(expr_str.begin(), expr_str.end(), [](char c) { 
+        return std::isdigit(c) || c == '.'; 
+    })) {
+        try {
+            return Value(std::stod(expr_str));
+        } catch (...) {
+            // 继续下面的解析
+        }
+    }
+    
+    try {
+        // 创建新的词法分析器和解析器来处理表达式
+        Lexer lexer(expr_str);
+        auto tokens = lexer.tokenize();
+        
+        Parser parser(tokens);
+        // 只解析表达式（不是完整语句）
+        auto expr_node = parser.parseExpressionPublic();
+        
+        // 评估表达式
+        return evaluateExpression(expr_node.get());
+    } catch (const std::exception& e) {
+        // 如果解析失败，尝试简单表达式解析
+        return parseAndEvaluateSimpleExpression(expr_str);
+    }
+}
+
+Value Executor::evaluateExec(const std::vector<std::unique_ptr<ExprNode>>& arguments) {
+    if (arguments.empty()) {
+        throw std::runtime_error("exec() missing required argument");
+    }
+    
+    // 获取要执行的代码字符串
+    Value code_value = evaluateExpression(arguments[0].get());
+    std::string code_str = code_value.toString();
+    
+    try {
+        // 确保代码以换行符结尾
+        if (!code_str.empty() && code_str.back() != '\n') {
+            code_str += '\n';
+        }
+        
+        // 创建新的词法分析器和解析器来处理代码
+        Lexer lexer(code_str);
+        auto tokens = lexer.tokenize();
+        
+        Parser parser(tokens);
+        auto statements = parser.parse();
+        
+        // 执行语句（在当前执行器上下文中）
+        for (const auto& stmt : statements) {
+            executeStatement(stmt.get());
+        }
+        
+        return Value(); // exec返回None
+    } catch (const std::exception& e) {
+        throw std::runtime_error("exec error: " + std::string(e.what()));
+    }
+}
+
 Value Executor::evaluateCall(const CallExpr* call) {
     std::string funcName = dynamic_cast<IdentifierExpr*>(call->callee.get())->name;
     
@@ -231,6 +323,14 @@ Value Executor::evaluateCall(const CallExpr* call) {
         }
         fastPutString(output + "\n");
         return Value(); // print返回None
+    }
+    
+    if (funcName == "eval") {
+        return evaluateEval(call->arguments);
+    }
+    
+    if (funcName == "exec") {
+        return evaluateExec(call->arguments);
     }
     
     throw std::runtime_error("Function " + funcName + " is not defined");

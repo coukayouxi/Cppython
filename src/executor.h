@@ -46,6 +46,10 @@ private:
     Value evaluateBinary(const BinaryExpr* binary);
     Value evaluateCall(const CallExpr* call);
     
+    // 新增：eval和exec功能
+    Value evaluateEval(const std::vector<std::unique_ptr<ExprNode>>& arguments);
+    Value evaluateExec(const std::vector<std::unique_ptr<ExprNode>>& arguments);
+    
     // f-string表达式解析辅助函数
     Value parseAndEvaluateSimpleExpression(const std::string& expr_str);
     

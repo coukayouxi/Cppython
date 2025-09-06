@@ -135,6 +135,11 @@ private:
 public:
     Parser(const std::vector<Token>& tokenList);
     std::vector<std::unique_ptr<StmtNode>> parse();
+    
+    // 添加公共方法用于eval
+    std::unique_ptr<ExprNode> parseExpressionPublic() {
+        return parseExpression();
+    }
 };
 
 #endif

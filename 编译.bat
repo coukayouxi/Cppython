@@ -1,1 +1,1 @@
-g++ -std=c++17 -O3 -s -flto -static -DNDEBUG src/*.cpp -o python.exe
+g++ -std=c++17 -O3 -s -flto -static -DNDEBUG src/*.cpp -o cppython.exe
